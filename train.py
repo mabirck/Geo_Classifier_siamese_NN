@@ -1,4 +1,3 @@
-
 import sys, os, argparse
 import numpy as np
 from core.siamese import Siamese as S
@@ -10,7 +9,7 @@ def main():
     parser.add_argument('--arch', type=str, default='VGG16', help='Passes the architecture to be learned')
     parser.add_argument('--load', action='store_true', default=False, help='Turn on to load the pretrained model')
     parser.add_argument('--domain', type=str, default='imagenet', help='Chose domain weights to be load')
-    parser.add_argument('--epoch', type=int, default=2)
+    parser.add_argument('--epochs', type=int, default=2)
     parser.add_argument('--steps', type=int, default=100)
 
 
@@ -18,13 +17,15 @@ def main():
     print args
 
     if args.mode == "train":
-        model = S(args)
+        Siamese = S(args)
 
-        for i in epochs:
+        for i in range(args.epochs):
             print "Epoch", i
-            model.fit(x, y, epochs, metrics)
+            Siamese.fit(x, y, 1, metrics)
     else:
-        print "I will evaluate"
+
+	val = Siamese.evaluate(x, y)
+        print "The accuracy is", val
 
 
 

@@ -79,7 +79,6 @@ def AlexNet(include_top = False, weights = 'imagenet'):
 def vgg16(include_top = False, weights = 'imagenet'):
     return VGG16(include_top, weights)
 
-
 def freezeAndRename(model,card):
     for i in model.layers:
         i.name = i.name+'_'+card
