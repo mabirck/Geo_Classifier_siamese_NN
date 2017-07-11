@@ -41,7 +41,17 @@ class Siamese:
         model.compile(loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
 
         return model
-    def fit(X, Y, epochs, ):
-	
-	if self.domain == 'imagenet':
+    def fit(self, X, Y, epochs):
+	# Select archictecture 'cause it will change between keras and tensorflow
+	if self.arch == 'AlexNet':
 	   
+	   # Selecting pretrained domain weights	   
+	   if self.domain == 'imagenet':
+	      return model.fit(X, Y, epochs = epochs)
+
+	   elif self.domain == 'places':
+	      sess = tf.session()
+	      sess.run(model)
+	elif self.arch == 'VGG16':
+            if self.domain == 'imagenet':
+	        return self.model.fit(X, Y, epochs=epochs)   	      
