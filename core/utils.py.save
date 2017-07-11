@@ -1,10 +1,5 @@
-import glob
-from scipy.misc import imread, imsave, imresize
-import numpy as np
 from keras.layers import Input, Convolution2D
 from keras.applications.vgg16 import VGG16
-from keras.preprocessing.image import ImageDataGenerator
-
 
 def pop_layer(model):
     if not model.outputs:
@@ -84,87 +79,9 @@ def AlexNet(include_top = False, weights = 'imagenet'):
 def vgg16(include_top = False, weights = 'imagenet'):
     return VGG16(include_top, weights)
 
-
 def freezeAndRename(model,card):
     for i in model.layers:
         i.name = i.name+'_'+card
         i.trainable = False
     return model
 
-############# PREPROCESSING IMAGES FUNCS ########################
-
-def loadCardinal(path):
-    #print path, 'why in hell this is a tuple'    
-    path = '_'.join(path.split('_')[:-1])
-    
-    card = ['_0.jpg', '_90.jpg', '_180.jpg', '_270.jpg']
-    labelToOneHot = {'blue' : 0, 'green' : 1, 'orange' : 2, 'red':3}
-
-    label = labelToOneHot[path.split('/')[-2]]
-        
-    n = np.array(imresize(imread(path+card[0]), (224, 224, 3)))
-    e = np.array(imresize(imread(path+card[1]), (224, 224, 3)))
-    s = np.array(imresize(imread(path+card[2]), (224, 224, 3)))
-    w = np.array(imresize(imread(path+card[3]), (224, 224, 3)))
-
-
-    print type(n)
-    return np.array([n, e, s, w]), np.array([np.array(label)])
-    
-    
-def getImages(args):
-
-    mode = args.mode
-    path = str(args.data)
-    batch_size = args.batch_size
-    
-    if(mode == 'train'):
-        #print "The path is in here ..............", str(path)
-        images_list = glob.glob(path+'/train/*/*')
-        #print images_list
-        batch_list = np.random.choice(images_list, batch_size)
-
-        images = []
-        labels = []
-        
-        for b in batch_list:
-            X, y = loadCardinal(b)
-            images.append(X)
-            labels.append(y) 
-
-        return images, np.array(labels)
-
-def augment(args, X, Y):
-    datagen = ImageDataGenerator(
-                       shear_range=0.2,
-                       zoom_range=0.2,
-                       horizontal_flip=True)
-        
-    for x, y in datagen.flow(np.array([X]), Y, batch_size=args.batch_size, shuffle=False):
-		print "thiiiisss is y", y
-                return x, y
-    
-
-
-def genBatch(args):
-
-    X, Y = getImages(args)        
-
-    batch = []
-    
-    for k, x in enumerate(X):
-	print 'before augment', x[0].shape, Y[k]
-    	N = augment(args, x[0], Y[k])[0]
-	print 'afet augment', N.shape, Y[k]
-	E = augment(args, x[1], Y[k])[0]
-	S = augment(args, x[2], Y[k])[0]
-	W = augment(args, x[3], Y[k])[0]
-	
-	print type(N), len(np.array(N)) 
-        batch.append([[N, E, S, W], np.array(Y[k])]) 
-	
-    return batch
-        
-    
-
-       
