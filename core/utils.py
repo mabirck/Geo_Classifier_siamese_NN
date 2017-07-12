@@ -1,9 +1,12 @@
 import glob
 from scipy.misc import imread, imsave, imresize
 import numpy as np
+from keras.utils import np_utils
 from keras.layers import Input, Convolution2D
 from keras.applications.vgg16 import VGG16
 from keras.preprocessing.image import ImageDataGenerator
+from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+from customlayers import convolution2Dgroup, crosschannelnormalization, splittensor, Softmax4D
 
 
 def pop_layer(model):
@@ -92,7 +95,6 @@ def freezeAndRename(model,card):
     return model
 
 ############# PREPROCESSING IMAGES FUNCS ########################
-
 def loadCardinal(path):
     #print path, 'why in hell this is a tuple'    
     path = '_'.join(path.split('_')[:-1])
@@ -107,10 +109,8 @@ def loadCardinal(path):
     s = np.array(imresize(imread(path+card[2]), (224, 224, 3)))
     w = np.array(imresize(imread(path+card[3]), (224, 224, 3)))
 
-
-    print type(n)
-    return np.array([n, e, s, w]), np.array([np.array(label)])
-    
+    #print type(n)
+    return n, e, s, w, label
     
 def getImages(args):
 
@@ -128,11 +128,11 @@ def getImages(args):
         labels = []
         
         for b in batch_list:
-            X, y = loadCardinal(b)
-            images.append(X)
+            n, e, s, w, y = loadCardinal(b)
+            images.append(np.array([n, e, s, w]))
             labels.append(y) 
 
-        return images, np.array(labels)
+        return np.array(images), labels
 
 def augment(args, X, Y):
     datagen = ImageDataGenerator(
@@ -140,30 +140,18 @@ def augment(args, X, Y):
                        zoom_range=0.2,
                        horizontal_flip=True)
         
-    for x, y in datagen.flow(np.array([X]), Y, batch_size=args.batch_size, shuffle=False):
-		print "thiiiisss is y", y
-                return x, y
+    for x, y in datagen.flow(X, Y, batch_size=args.batch_size, shuffle=False):
+		new = np_utils.to_categorical(y, 4)
+		#print "thiiiisss is X and X", x, X     	    
+                #print "thiiiisss is y and new", y, new
+		return x, new
     
 
 
 def genBatch(args):
 
-    X, Y = getImages(args)        
-
-    batch = []
-    
-    for k, x in enumerate(X):
-	print 'before augment', x[0].shape, Y[k]
-    	N = augment(args, x[0], Y[k])[0]
-	print 'afet augment', N.shape, Y[k]
-	E = augment(args, x[1], Y[k])[0]
-	S = augment(args, x[2], Y[k])[0]
-	W = augment(args, x[3], Y[k])[0]
-	
-	print type(N), len(np.array(N)) 
-        batch.append([[N, E, S, W], np.array(Y[k])]) 
-	
-    return batch
+    images, labels = getImages(args)      	
+    return images, labels
         
     
 
