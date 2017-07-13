@@ -73,33 +73,35 @@ class Siamese:
 
         
 
-    def fit(self, X, Y, epochs):
+    def fit(self, X, Y, epochs, current_epoch):
 	
 	
 	checkpoint = ModelCheckpoint('weights.{epoch:02d}.hdf5', verbose=0, save_best_only=False, save_weights_only=True, mode='auto', period=self.args.save_period)
 	
-	saveMetrics = SaveMetrics() 
+	#saveMetrics = SaveMetrics() 
 	
-#	import json
-#	json_log = open('loss_log.json', mode='wt', buffering=1)
-#	json_logging_callback = LambdaCallback(
-#	on_epoch_end=lambda epoch, logs: json_log.write(
-#    	json.dumps({'epoch': epoch, 'loss': logs['loss']}) + '\n'),
-#    	on_train_end=lambda logs: json_log.close())
-	
-
-	callbacks = [checkpoint, saveMetrics]	
+	callbacks = [checkpoint]	
 
 	# Select archictecture 'cause it will change between keras and tensorflow
 	if self.arch == 'AlexNet':
 	   
 	   # Selecting pretrained domain weights	   
 	   if self.domain == 'imagenet':
-	      return model.fit(X, Y, epochs = epochs)
+	      return self.model.fit(X, Y, verbose=0, epochs = epochs)
 
 	   elif self.domain == 'places':
 	      sess = tf.session()
 	      sess.run(model)
 	elif self.arch == 'VGG16':
             if self.domain == 'imagenet':
-	        return self.model.fit(X, Y, epochs=epochs, callbacks=callbacks)   	      
+			
+		if(current_epoch % self.args.save_period):
+	            return self.model.fit(X, Y, verbose = 0, epochs=epochs, callbacks=callbacks)   	      
+		else:
+		    return self.model.fit(X, Y, verbose = 0, epochs=epochs)
+    def evaluate(self, VAL):
+	ls = self.model.evaluate(VAL[0], VAL[1], verbose=0)        
+        #print 'printing ls:',ls
+	return ls
+	
+	

@@ -97,12 +97,14 @@ def freezeAndRename(model,card):
     return model
 
 ############# PREPROCESSING IMAGES FUNCS ########################
-def loadCardinal(path):
-    #print path, 'why in hell this is a tuple'    
-    path = '_'.join(path.split('_')[:-1])
+def loadCardinal(path, eval=False):
+    #print path, 'why in hell this is a tuple'  
+    if eval == False:  
+        path = '_'.join(path.split('_')[:-1])
     
     card = ['_0.jpg', '_90.jpg', '_180.jpg', '_270.jpg']
-    labelToOneHot = {'blue' : 0, 'green' : 1, 'orange' : 2, 'red':3}
+    #labelToOneHot = {'blue' : 0, 'green' : 1, 'orange' : 2, 'red':3}
+    labelToOneHot = {'blue' : 0, 'red' : 1}
 
     label = labelToOneHot[path.split('/')[-2]]
         
@@ -110,17 +112,36 @@ def loadCardinal(path):
     e = np.array(imresize(imread(path+card[1]), (224, 224, 3)))
     s = np.array(imresize(imread(path+card[2]), (224, 224, 3)))
     w = np.array(imresize(imread(path+card[3]), (224, 224, 3)))
+    #print n.shape, e.shape, s.shape, w.shape
 
     #print type(n)
     return n, e, s, w, label
     
-def getImages(args):
+def getImages(args, valPoints, eval=False):
 
     mode = args.mode
     path = str(args.data)
     batch_size = args.batch_size
     
-    if(mode == 'train'):
+    if(eval==True):
+        #print "The path is in here ..............", str(path)
+        #images_list = glob.glob(path+'/test/*/*')
+        #print images_list
+        batch_list = valPoints
+
+        images = []
+        labels = []
+
+        for b in batch_list:
+     	    #print b, len(images)
+            n, e, s, w, y = loadCardinal(b, eval)
+            images.append(np.array([n, e, s, w]))
+            labels.append(y) 
+
+        return np.array(images), labels
+	    
+
+    elif(mode == 'train'):
         #print "The path is in here ..............", str(path)
         images_list = glob.glob(path+'/train/*/*')
         #print images_list
@@ -131,6 +152,7 @@ def getImages(args):
         
         for b in batch_list:
             n, e, s, w, y = loadCardinal(b)
+	    #print b,  len(images)
             images.append(np.array([n, e, s, w]))
             labels.append(y) 
 
@@ -138,23 +160,36 @@ def getImages(args):
 
 def augment(args, X, Y):
     datagen = ImageDataGenerator(
+		       rescale=1./255,
                        shear_range=0.2,
                        zoom_range=0.2,
                        horizontal_flip=True)
         
     for x, y in datagen.flow(X, Y, batch_size=args.batch_size, shuffle=False):
 		new = np_utils.to_categorical(y, 4)
-		#print "thiiiisss is X and X", x, X     	    
-                #print "thiiiisss is y and new", y, new
 		return x, new
+def augmentVal(args, X, Y):
+    datagen = ImageDataGenerator(
+                       rescale=1./255)
+
+    for x, y in datagen.flow(X, Y, shuffle=False):
+                new = np_utils.to_categorical(y, 4)
+                return x, new
+
     
 
 
 def genBatch(args):
 
-    images, labels = getImages(args)      	
+    images, labels = getImages(args, valPoints=None, eval=False)      	
     return images, labels
         
+
+def genVal(args, valPoints, eval):
+
+    images, labels = getImages(args,valPoints, eval)            
+    return images, labels
+
     
 
        
@@ -165,7 +200,7 @@ class SaveMetrics(Callback):
  	        self.metrics = json.load(f)
         except:
 	    with open('metrics.json', 'w') as f:
-                self.metrics = {'loss':[], 'acc':[]}
+                self.metrics = {'loss':[], 'acc':[], 'val_loss':[], 'val_acc':[]}
 		json.dump(self.metrics, f)
 			
     def on_epoch_end(self, epoch, logs):
@@ -176,5 +211,20 @@ class SaveMetrics(Callback):
 	with open('metrics.json', 'w') as f:    
     	    data = json.dump(self.metrics, f)
 	
+def getValSet(path):
+    images_list = glob.glob(path+'*/*')
+    
+    unicList = set()
 
+    for i in images_list:
+	point  = '_'.join(i.split('_')[:-1])
+	#print point
+	unicList.add(point)
+
+    return unicList
+
+def initLog():
+    with open('metrics.json', 'w') as f:
+        metrics = {'loss':[], 'acc':[], 'val_loss':[], 'val_acc':[]}
+        json.dump(metrics, f)
 
