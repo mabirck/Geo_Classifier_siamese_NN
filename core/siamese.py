@@ -3,6 +3,8 @@ from keras.models import Sequential, Model
 from keras.layers import Dense, Merge, Dropout, Concatenate, Activation, concatenate, Input
 from keras.layers.merge import concatenate
 from keras.layers.advanced_activations import LeakyReLU
+from keras.callbacks import Callback, ModelCheckpoint, LambdaCallback
+from core.utils import SaveMetrics
 
 class Siamese:
     def __init__(self, args):
@@ -72,6 +74,22 @@ class Siamese:
         
 
     def fit(self, X, Y, epochs):
+	
+	
+	checkpoint = ModelCheckpoint('weights.{epoch:02d}.hdf5', verbose=0, save_best_only=False, save_weights_only=True, mode='auto', period=self.args.save_period)
+	
+	saveMetrics = SaveMetrics() 
+	
+#	import json
+#	json_log = open('loss_log.json', mode='wt', buffering=1)
+#	json_logging_callback = LambdaCallback(
+#	on_epoch_end=lambda epoch, logs: json_log.write(
+#    	json.dumps({'epoch': epoch, 'loss': logs['loss']}) + '\n'),
+#    	on_train_end=lambda logs: json_log.close())
+	
+
+	callbacks = [checkpoint, saveMetrics]	
+
 	# Select archictecture 'cause it will change between keras and tensorflow
 	if self.arch == 'AlexNet':
 	   
@@ -84,4 +102,4 @@ class Siamese:
 	      sess.run(model)
 	elif self.arch == 'VGG16':
             if self.domain == 'imagenet':
-	        return self.model.fit(X, Y, epochs=epochs)   	      
+	        return self.model.fit(X, Y, epochs=epochs, callbacks=callbacks)   	      

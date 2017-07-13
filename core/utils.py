@@ -1,4 +1,5 @@
 import glob
+import json
 from scipy.misc import imread, imsave, imresize
 import numpy as np
 from keras.utils import np_utils
@@ -7,6 +8,7 @@ from keras.applications.vgg16 import VGG16
 from keras.preprocessing.image import ImageDataGenerator
 from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
 from customlayers import convolution2Dgroup, crosschannelnormalization, splittensor, Softmax4D
+from keras.callbacks import Callback, ModelCheckpoint
 
 
 def pop_layer(model):
@@ -156,3 +158,23 @@ def genBatch(args):
     
 
        
+class SaveMetrics(Callback):
+    def on_epoch_begin(self, epoch, logs):
+	try:
+	    with open('metrics.json', 'r') as f:   
+ 	        self.metrics = json.load(f)
+        except:
+	    with open('metrics.json', 'w') as f:
+                self.metrics = {'loss':[], 'acc':[]}
+		json.dump(self.metrics, f)
+			
+    def on_epoch_end(self, epoch, logs):
+        
+        self.metrics['loss'].append(logs.get('loss'))
+	self.metrics['acc'].append(logs.get('acc'))
+	
+	with open('metrics.json', 'w') as f:    
+    	    data = json.dump(self.metrics, f)
+	
+
+
