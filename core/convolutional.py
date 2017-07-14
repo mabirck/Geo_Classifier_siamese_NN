@@ -18,6 +18,7 @@ def CNN(args, n):
         if args.domain == 'imagenet':
             model = vgg16(include_top=True, weights='imagenet')
             model = pop_layer(model)
+	    model = pop_layer(model)
             model = freezeAndRename(model, n)
 	    return model
         elif args.domain == 'places':

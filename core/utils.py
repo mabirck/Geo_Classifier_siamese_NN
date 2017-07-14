@@ -99,8 +99,8 @@ def freezeAndRename(model,card):
 ############# PREPROCESSING IMAGES FUNCS ########################
 def loadCardinal(path, eval=False):
     #print path, 'why in hell this is a tuple'  
-    if eval == False:  
-        path = '_'.join(path.split('_')[:-1])
+
+    #path = '_'.join(path.split('_')[:-1])
     
     card = ['_0.jpg', '_90.jpg', '_180.jpg', '_270.jpg']
     #labelToOneHot = {'blue' : 0, 'green' : 1, 'orange' : 2, 'red':3}
@@ -117,7 +117,7 @@ def loadCardinal(path, eval=False):
     #print type(n)
     return n, e, s, w, label
     
-def getImages(args, valPoints, eval=False):
+def getImages(args, getPoints, eval=False):
 
     mode = args.mode
     path = str(args.data)
@@ -127,7 +127,7 @@ def getImages(args, valPoints, eval=False):
         #print "The path is in here ..............", str(path)
         #images_list = glob.glob(path+'/test/*/*')
         #print images_list
-        batch_list = valPoints
+        batch_list = getPoints
 
         images = []
         labels = []
@@ -143,9 +143,9 @@ def getImages(args, valPoints, eval=False):
 
     elif(mode == 'train'):
         #print "The path is in here ..............", str(path)
-        images_list = glob.glob(path+'/train/*/*')
+        #images_list = glob.glob(path+'/train/*/*')
         #print images_list
-        batch_list = np.random.choice(images_list, batch_size)
+        batch_list = getPoints
 
         images = []
         labels = []

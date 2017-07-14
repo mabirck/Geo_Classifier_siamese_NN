@@ -16,7 +16,7 @@ class Siamese:
         self.headsMap = {i: None for i in self.heads}
         self.model = None
 	self.build()
-        print "I am the loop"
+        #print "I am the loop"
 
     def build(self):
 
@@ -59,7 +59,7 @@ class Siamese:
 #	self.model.add(Input(shape=(277, 277, 3)))
 	self.model.add(Merge([TN, TE, TS, TW], mode='concat'))
 
-        self.model.add(Dense(1024, name='fc_merge'))
+        self.model.add(Dense(512, name='fc_merge'))
         self.model.add(Dropout(0.5, name='dp'))
         self.model.add(LeakyReLU(0.1, name='shi'))
         self.model.add(Dense(4, name='fc_final'))
@@ -76,7 +76,7 @@ class Siamese:
     def fit(self, X, Y, epochs, current_epoch):
 	
 	
-	checkpoint = ModelCheckpoint('weights.{epoch:02d}.hdf5', verbose=0, save_best_only=False, save_weights_only=True, mode='auto', period=self.args.save_period)
+	checkpoint = ModelCheckpoint('weights.{epoch:02d}.hdf5', verbose=0, save_best_only=False, save_weights_only=True, mode='auto', period=1)
 	
 	#saveMetrics = SaveMetrics() 
 	
