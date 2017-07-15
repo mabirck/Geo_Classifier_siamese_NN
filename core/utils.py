@@ -1,9 +1,14 @@
 import glob
+import json
 from scipy.misc import imread, imsave, imresize
 import numpy as np
+from keras.utils import np_utils
 from keras.layers import Input, Convolution2D
 from keras.applications.vgg16 import VGG16
 from keras.preprocessing.image import ImageDataGenerator
+from keras.layers.convolutional import Convolution2D, MaxPooling2D, ZeroPadding2D
+from customlayers import convolution2Dgroup, crosschannelnormalization, splittensor, Softmax4D
+from keras.callbacks import Callback, ModelCheckpoint
 
 
 def pop_layer(model):
@@ -92,79 +97,152 @@ def freezeAndRename(model,card):
     return model
 
 ############# PREPROCESSING IMAGES FUNCS ########################
+def loadCardinal(path, eval=False):
+    #print path, 'why in hell this is a tuple'  
 
-def loadCardinal(path):
-    #print path, 'why in hell this is a tuple'    
-    path = '_'.join(path.split('_')[:-1])
+    #path = '_'.join(path.split('_')[:-1])
     
     card = ['_0.jpg', '_90.jpg', '_180.jpg', '_270.jpg']
-    labelToOneHot = {'blue' : 0, 'green' : 1, 'orange' : 2, 'red':3}
+    #labelToOneHot = {'blue' : 0, 'green' : 1, 'orange' : 2, 'red':3}
+    labelToOneHot = {'blue' : 0, 'red' : 1}
 
     label = labelToOneHot[path.split('/')[-2]]
         
-    n = np.array(imresize(imread(path+card[0]), (224, 224, 3)))
-    e = np.array(imresize(imread(path+card[1]), (224, 224, 3)))
-    s = np.array(imresize(imread(path+card[2]), (224, 224, 3)))
-    w = np.array(imresize(imread(path+card[3]), (224, 224, 3)))
+    #n = np.array(imresize(imread(path+card[0]), (224, 224, 3)))
+    #e = np.array(imresize(imread(path+card[1]), (224, 224, 3)))
+    #s = np.array(imresize(imread(path+card[2]), (224, 224, 3)))
+    #w = np.array(imresize(imread(path+card[3]), (224, 224, 3)))
 
+    #Dealing with copyright photos
 
-    print type(n)
-    return np.array([n, e, s, w]), np.array([np.array(label)])
+    n = np.array(imread(path+card[0]))
+    if n.shape == (224, 224):
+        n = np.resize(n, (224, 224, 3))
+	#print 'I DOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO ENTES HERE'
+    e = np.array(imread(path+card[1]))
+    if e.shape == (224, 224):
+        e = np.resize(e, (224, 224, 3))
+
+    s = np.array(imread(path+card[2]))
+    if s.shape == (224, 224):
+        s = np.resize(s, (224, 224, 3))
+
+    w = np.array(imread(path+card[3]))
+    if w.shape == (224, 224):
+        w = np.resize(w, (224, 224, 3))
+    #print n.shape, e.shape, s.shape, w.shape	
+
+    #print type(n)
+    return n, e, s, w, label
     
-    
-def getImages(args):
+def getImages(args, getPoints, eval=False):
 
     mode = args.mode
     path = str(args.data)
     batch_size = args.batch_size
     
-    if(mode == 'train'):
+    if(eval==True):
         #print "The path is in here ..............", str(path)
-        images_list = glob.glob(path+'/train/*/*')
+        #images_list = glob.glob(path+'/test/*/*')
         #print images_list
-        batch_list = np.random.choice(images_list, batch_size)
+        batch_list = getPoints
+
+        images = []
+        labels = []
+
+        for b in batch_list:
+     	    print b, len(images)
+            n, e, s, w, y = loadCardinal(b, eval)
+            images.append(np.array([n, e, s, w]))
+            labels.append(y) 
+
+        return np.array(images), labels
+	    
+
+    elif(mode == 'train'):
+        #print "The path is in here ..............", str(path)
+        #images_list = glob.glob(path+'/train/*/*')
+        #print images_list
+        batch_list = getPoints
 
         images = []
         labels = []
         
         for b in batch_list:
-            X, y = loadCardinal(b)
-            images.append(X)
+            n, e, s, w, y = loadCardinal(b)
+	    #print b,  len(images)
+            images.append(np.array([n, e, s, w]))
             labels.append(y) 
 
-        return images, np.array(labels)
+        return np.array(images), labels
 
 def augment(args, X, Y):
     datagen = ImageDataGenerator(
+		       rescale=1./255,
                        shear_range=0.2,
                        zoom_range=0.2,
                        horizontal_flip=True)
         
-    for x, y in datagen.flow(np.array([X]), Y, batch_size=args.batch_size, shuffle=False):
-		print "thiiiisss is y", y
-                return x, y
+    for x, y in datagen.flow(X, Y, batch_size=args.batch_size, shuffle=False):
+		new = np_utils.to_categorical(y, 4)
+		return x, new
+def augmentVal(args, X, Y):
+    datagen = ImageDataGenerator(
+                       rescale=1./255)
+
+    for x, y in datagen.flow(X, Y, shuffle=False):
+                new = np_utils.to_categorical(y, 4)
+                return x, new
+
     
 
 
 def genBatch(args):
 
-    X, Y = getImages(args)        
-
-    batch = []
-    
-    for k, x in enumerate(X):
-	print 'before augment', x[0].shape, Y[k]
-    	N = augment(args, x[0], Y[k])[0]
-	print 'afet augment', N.shape, Y[k]
-	E = augment(args, x[1], Y[k])[0]
-	S = augment(args, x[2], Y[k])[0]
-	W = augment(args, x[3], Y[k])[0]
-	
-	print type(N), len(np.array(N)) 
-        batch.append([[N, E, S, W], np.array(Y[k])]) 
-	
-    return batch
+    images, labels = getImages(args, valPoints=None, eval=False)      	
+    return images, labels
         
+
+def genVal(args, valPoints, eval):
+
+    images, labels = getImages(args,valPoints, eval)            
+    return images, labels
+
     
 
        
+class SaveMetrics(Callback):
+    def on_epoch_begin(self, epoch, logs):
+	try:
+	    with open('metrics.json', 'r') as f:   
+ 	        self.metrics = json.load(f)
+        except:
+	    with open('metrics.json', 'w') as f:
+                self.metrics = {'loss':[], 'acc':[], 'val_loss':[], 'val_acc':[]}
+		json.dump(self.metrics, f)
+			
+    def on_epoch_end(self, epoch, logs):
+        
+        self.metrics['loss'].append(logs.get('loss'))
+	self.metrics['acc'].append(logs.get('acc'))
+	
+	with open('metrics.json', 'w') as f:    
+    	    data = json.dump(self.metrics, f)
+	
+def getValSet(path):
+    images_list = glob.glob(path+'*/*')
+    
+    unicList = set()
+
+    for i in images_list:
+	point  = '_'.join(i.split('_')[:-1])
+	#print point
+	unicList.add(point)
+
+    return unicList
+
+def initLog():
+    with open('metrics.json', 'w') as f:
+        metrics = {'loss':[], 'acc':[], 'val_loss':[], 'val_acc':[]}
+        json.dump(metrics, f)
+
