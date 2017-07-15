@@ -108,11 +108,29 @@ def loadCardinal(path, eval=False):
 
     label = labelToOneHot[path.split('/')[-2]]
         
-    n = np.array(imresize(imread(path+card[0]), (224, 224, 3)))
-    e = np.array(imresize(imread(path+card[1]), (224, 224, 3)))
-    s = np.array(imresize(imread(path+card[2]), (224, 224, 3)))
-    w = np.array(imresize(imread(path+card[3]), (224, 224, 3)))
-    #print n.shape, e.shape, s.shape, w.shape
+    #n = np.array(imresize(imread(path+card[0]), (224, 224, 3)))
+    #e = np.array(imresize(imread(path+card[1]), (224, 224, 3)))
+    #s = np.array(imresize(imread(path+card[2]), (224, 224, 3)))
+    #w = np.array(imresize(imread(path+card[3]), (224, 224, 3)))
+
+    #Dealing with copyright photos
+
+    n = np.array(imread(path+card[0]))
+    if n.shape == (224, 224):
+        n = np.resize(n, (224, 224, 3))
+	#print 'I DOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO ENTES HERE'
+    e = np.array(imread(path+card[1]))
+    if e.shape == (224, 224):
+        e = np.resize(e, (224, 224, 3))
+
+    s = np.array(imread(path+card[2]))
+    if s.shape == (224, 224):
+        s = np.resize(s, (224, 224, 3))
+
+    w = np.array(imread(path+card[3]))
+    if w.shape == (224, 224):
+        w = np.resize(w, (224, 224, 3))
+    #print n.shape, e.shape, s.shape, w.shape	
 
     #print type(n)
     return n, e, s, w, label
@@ -133,7 +151,7 @@ def getImages(args, getPoints, eval=False):
         labels = []
 
         for b in batch_list:
-     	    #print b, len(images)
+     	    print b, len(images)
             n, e, s, w, y = loadCardinal(b, eval)
             images.append(np.array([n, e, s, w]))
             labels.append(y) 

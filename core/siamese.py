@@ -73,10 +73,10 @@ class Siamese:
 
         
 
-    def fit(self, X, Y, epochs, current_epoch):
+    def fit(self, X, Y, epochs, saveit):
 	
 	
-	checkpoint = ModelCheckpoint('weights.{epoch:02d}.hdf5', verbose=0, save_best_only=False, save_weights_only=True, mode='auto', period=1)
+	checkpoint = ModelCheckpoint('weights.{epoch:0004d}.hdf5', verbose=0, save_best_only=False, save_weights_only=True, mode='auto', period=1)
 	
 	#saveMetrics = SaveMetrics() 
 	
@@ -95,7 +95,7 @@ class Siamese:
 	elif self.arch == 'VGG16':
             if self.domain == 'imagenet':
 			
-		if(current_epoch % self.args.save_period):
+		if(saveit == True):
 	            return self.model.fit(X, Y, verbose = 0, epochs=epochs, callbacks=callbacks)   	      
 		else:
 		    return self.model.fit(X, Y, verbose = 0, epochs=epochs)

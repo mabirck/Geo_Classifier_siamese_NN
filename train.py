@@ -18,7 +18,7 @@ def main():
     parser.add_argument('--steps', type=int, default=497)
     parser.add_argument('--batch_size', type=int, default=16)
     parser.add_argument('--data', type=str, default='./data')    
-    parser.add_argument('--save_period', type=int, default=50)
+    parser.add_argument('--save_period', type=int, default=10)
 
     args = parser.parse_args()
     print args
@@ -39,8 +39,16 @@ def main():
 	    val_loss = []	    
 	    ValImageList = list(testList)
 	    TrainImageList = list(trainList)
-		
-                 #	    print 'STARTIIIIING TRAIIIIN PART _>>>>>>>>>>>>>>>>>>>'
+            
+            if(args.epochs % args.save_period == 0):
+	        saveit = True
+	    else:
+	        saveit = False	    
+
+                 #	    print 'STARTIIIIING TRAIIIIN PART _>>>>>>>>>>>>>>>>>>>
+
+            
+	    
 	    for s in range(0, len(trainList), 16):
 		
     		sys.stdout.write('.')
@@ -66,13 +74,14 @@ def main():
 		data  = [N, E, S, W]
     		train_log = None		    
             	with tf.device('/gpu:0'):
-	     	    train_log = Siamese.fit(data, Y, 1, e)
-
+	     	    train_log = Siamese.fit(data, Y, 1, saveit)
+		
+		saveit = False
+		
 		loss.append(train_log.history['loss'][0])
     	 	acc.append(train_log.history['acc'][0])
 
         	#print len(ValImageList)
-
             for i in range(0, len(testList), 16):
 		
 		if(len(ValImageList) < 16):
@@ -101,14 +110,12 @@ def main():
 	        val_acc.append(vals[1])
 		    
                 ValImageList = [image for image in ValImageList if image not in valPoints]
-		
-
-	        loss = np.mean(loss)
-	        acc = np.mean(acc)
+	
 	
 	    val_loss = np.mean(val_loss)
 	    val_acc = np.mean(val_acc)
-		    
+	    loss = np.mean(loss)
+	    acc = np.mean(acc)	    
 
             with open('metrics.json', 'r') as f:   
 	        metrics = json.load(f)
