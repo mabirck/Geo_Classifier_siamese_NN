@@ -4,6 +4,7 @@ from keras.layers import Dense, Merge, Dropout, Concatenate, Activation, concate
 from keras.layers.merge import concatenate
 from keras.layers.advanced_activations import LeakyReLU
 from keras.callbacks import Callback, ModelCheckpoint, LambdaCallback
+from keras.optimizers import Adadelta
 from core.utils import SaveMetrics
 
 class Siamese:
@@ -68,15 +69,19 @@ class Siamese:
 	#self.model = Model(inputs = [self.headsMap['N'].input, self.headsMap['E'].input, \
         #                        self.headsMap['S'].input, self.headsMap['W'].input],
 	#	      outputs = classifier)
-	
-        self.model.compile(loss='categorical_crossentropy', optimizer='adadelta', metrics=['accuracy'])
 
+	optimizer = Adadelta(lr=0.002)	
+
+        self.model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
+	
+	if self.args.load != None:
+	    self.model.load_weights(self.args.load)
         
 
-    def fit(self, X, Y, epochs, saveit):
+    def fit(self, X, Y, epochs, saveit, e):
 	
 	
-	checkpoint = ModelCheckpoint('weights.{epoch:0004d}.hdf5', verbose=0, save_best_only=False, save_weights_only=True, mode='auto', period=1)
+	checkpoint = ModelCheckpoint('weights.'+str(e)+'.hdf5', verbose=0, save_best_only=False, save_weights_only=True, mode='auto', period=1)
 	
 	#saveMetrics = SaveMetrics() 
 	
@@ -101,6 +106,11 @@ class Siamese:
 		    return self.model.fit(X, Y, verbose = 0, epochs=epochs)
     def evaluate(self, VAL):
 	ls = self.model.evaluate(VAL[0], VAL[1], verbose=0)        
+        #print 'printing ls:',ls
+	return ls
+
+    def predict(self, VAL):
+	ls = self.model.predict(VAL[0], verbose=0)        
         #print 'printing ls:',ls
 	return ls
 	
