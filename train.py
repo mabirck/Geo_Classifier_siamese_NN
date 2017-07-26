@@ -7,12 +7,14 @@ import keras.backend as K
 from core.siamese import Siamese as SM
 from core.utils import genBatch, augment, genVal, augmentVal, getValSet, initLog
 import tensorflow as tf
+from pandas_ml import ConfusionMatrix
+
 def main():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--mode', default='train', help='Phase: Can be train, val or test')
     parser.add_argument('--arch', type=str, default='VGG16', help='Passes the architecture to be learned')
-    parser.add_argument('--load', action='store_true', default=False, help='Turn on to load the pretrained model')
+    parser.add_argument('--load', type=str, default=None, help='Turn on to load the pretrained model')
     parser.add_argument('--domain', type=str, default='imagenet', help='Chose domain weights to be load')
     parser.add_argument('--epochs', type=int, default=1000)
     parser.add_argument('--steps', type=int, default=497)
@@ -40,7 +42,7 @@ def main():
 	    ValImageList = list(testList)
 	    TrainImageList = list(trainList)
             
-            if(args.epochs % args.save_period == 0):
+            if(e % args.save_period == 0):
 	        saveit = True
 	    else:
 	        saveit = False	    
@@ -74,7 +76,7 @@ def main():
 		data  = [N, E, S, W]
     		train_log = None		    
             	with tf.device('/gpu:0'):
-	     	    train_log = Siamese.fit(data, Y, 1, saveit)
+	     	    train_log = Siamese.fit(data, Y, 1, saveit, e)
 		
 		saveit = False
 		
@@ -132,8 +134,59 @@ def main():
 	    print '\nEpoch metrics ->  loss:', loss, 'acc:',acc, 'val_loss:', val_loss, 'val_acc:', val_acc, 'time_elapsed:', end-start, '\n'
 
     else:
-    	val = Siamese.evaluate(x, y)
-        print "The accuracy is", val
+
+        Siamese = SM(args)	
+	testList = getValSet(args.data+'/test/')
+    
+        ValImageList = list(testList)
+
+
+	final_labels = []
+	real_labels = []	
+
+	for i in range(0, len(testList), 16):
+		pred = None		
+
+		if(len(ValImageList) < 16):
+                    bs = len(ValImageList)
+                else:
+                    bs = 16 
+	
+                valPoints = random.sample(ValImageList, bs)		
+	        #print valPoints
+	        X_V, Y_V = genVal(args, valPoints, eval=True)
+		real_labels.append(Y_V)
+
+	        testN, y_testN = augmentVal(args, X_V[:,0], Y_V)
+	        testE = augmentVal(args, X_V[:,1], Y_V)[0]
+
+	        testS = augmentVal(args, X_V[:,2], Y_V)[0]
+	        testW = augmentVal(args, X_V[:,3], Y_V)[0]
+		
+
+	        validation_data = ([testN, testE, testS, testW], y_testN)
+	        vals = None
+	        
+		with tf.device('/gpu:0'):
+	             pred = Siamese.predict(validation_data)
+		      
+	        #val_loss.append(vals[0])
+	        #val_acc.append(vals[1])
+		    
+                ValImageList = [image for image in ValImageList if image not in valPoints]
+
+		final_labels.append(np.argmax(np.array(pred), axis=1))	
+		
+		#print np.argmax(pred, axis=1)
+	final_labels = np.array([item for sublist in final_labels for item in sublist])
+	real_labels = np.array([item for sublist in real_labels for item in sublist])	
+
+    	#val = Siamese.evaluate(x, y)
+        #print "The final_labels is", final_labels
+	
+	confusionmatrix = ConfusionMatrix(real_labels, final_labels)
+	print confusionmatrix
+	print confusionmatrix.print_stats()
 
 
 
